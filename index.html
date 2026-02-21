@@ -3,17 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salah Connect | Delhi-NCR Live Radar</title>
+    <title>Salah Connect | Mujtaba Mazroof</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Amiri:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --emerald: #10b981; --dark: #050608; }
-        body { background: var(--dark); color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); transition: 0.3s ease; }
-        .glass:hover { border-color: var(--emerald); transform: translateY(-4px); }
-        .arabic { font-family: 'Amiri', serif; opacity: 0.1; position: absolute; right: 1.5rem; top: 1.5rem; font-size: 2.5rem; }
-        .shimmer { background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.05), transparent); background-size: 200% 100%; animation: shim 2s infinite; }
-        @keyframes shim { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        body { background: #050608; color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); transition: 0.3s; }
+        .glass:hover { border-color: #10b981; transform: translateY(-4px); }
+        .emerald-glow { box-shadow: 0 0 20px rgba(16, 185, 129, 0.1); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -22,128 +19,113 @@
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center font-black text-xl italic shadow-lg shadow-emerald-500/20 text-white">S</div>
-                <div>
-                    <h1 class="text-xl font-extrabold tracking-tighter uppercase italic">Salah<span class="text-emerald-500 not-italic">Connect</span></h1>
-                    <p id="status" class="text-[9px] text-gray-500 uppercase tracking-widest mt-1">Initializing Radar...</p>
-                </div>
+                <h1 class="text-xl font-extrabold tracking-tighter uppercase italic">Salah<span class="text-emerald-500 not-italic text-sm ml-1">Connect</span></h1>
             </div>
-            <div id="gps-dot" class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
+            <div id="status-badge" class="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-[9px] text-red-500 font-bold uppercase tracking-widest">
+                Searching Radar...
+            </div>
         </div>
     </header>
 
     <main class="p-6 max-w-6xl mx-auto w-full flex-grow">
         <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="glass rounded-[2.5rem] p-8 h-80 shimmer"></div>
-            <div class="glass rounded-[2.5rem] p-8 h-80 shimmer"></div>
-            <div class="glass rounded-[2.5rem] p-8 h-80 shimmer"></div>
+            <div class="glass rounded-[2rem] p-8 h-80 animate-pulse bg-white/5"></div>
+            <div class="glass rounded-[2rem] p-8 h-80 animate-pulse bg-white/5"></div>
+            <div class="glass rounded-[2rem] p-8 h-80 animate-pulse bg-white/5"></div>
         </div>
     </main>
 
-    <footer class="p-10 border-t border-white/5 bg-black/40 text-center">
-        <p class="text-[10px] text-gray-600 uppercase tracking-[0.4em]">© 2026 Developed by Mujtaba Mazroof</p>
+    <footer class="p-8 border-t border-white/5 text-center text-[10px] text-gray-600 tracking-[0.3em] uppercase">
+        © 2026 Developed by Mujtaba Mazroof
     </footer>
 
     <script>
-        // --- 1. GEOLOCATION DISTANCE MATH ---
-        function getDistance(lat1, lon1, lat2, lon2) {
+        // 1. Distance Calculation
+        function getDist(lat1, lon1, lat2, lon2) {
             const R = 6371; 
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const d = R * c;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+            const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             return d > 1 ? d.toFixed(1) + " km" : Math.round(d * 1000) + " m";
         }
 
-        // --- 2. JAMA'AT LOGIC ENGINE ---
-        function calculateJamaat(salah, startTime) {
-            let [h, m] = startTime.split(':').map(Number);
-            let total = h * 60 + m;
-            let j;
-
+        // 2. Jama'at Logic Engine (Your Formulas)
+        function calcJ(salah, start) {
+            let [h, m] = start.split(':').map(Number);
+            let t = h * 60 + m;
             if (salah === 'Fajr') {
-                let next5 = Math.ceil(total / 5) * 5;
-                j = (next5 === total + 1) ? (next5 - 5) - 25 : next5 - 25;
+                let n5 = Math.ceil(t / 5) * 5;
+                return (n5 === t + 1) ? (n5 - 5) - 25 : n5 - 25;
             } else if (salah === 'Asr' || salah === 'Isha') {
-                let rem = total % 15;
-                j = (rem === 0) ? total + 15 : (Math.ceil(total / 15) * 15) + 15;
-            } else if (salah === 'Maghrib') {
-                j = total + 7;
-            } else {
-                j = total; // Zohr handled via input
-            }
-            return j;
+                let rem = t % 15;
+                return (rem === 0) ? t + 15 : (Math.ceil(t / 15) * 15) + 15;
+            } else if (salah === 'Maghrib') return t + 7;
+            return t; 
         }
 
-        function formatTime(min) {
+        function fmt(min) {
             let h = Math.floor(min / 60) % 24;
             let m = min % 60;
-            let p = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12;
-            return `${h}:${m.toString().padStart(2, '0')} ${p}`;
+            return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
         }
 
-        // --- 3. CORE APP INITIALIZATION ---
         async function init() {
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 const { latitude, longitude } = pos.coords;
-                document.getElementById('gps-dot').className = "w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_15px_#10b981]";
-                document.getElementById('status').innerText = "Area Scan: 50km Active";
+                document.getElementById('status-badge').className = "px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[9px] text-emerald-500 font-bold uppercase tracking-widest";
+                document.getElementById('status-badge').innerText = "Radar Active: 50km";
 
-                const query = `[out:json][timeout:30];(node["amenity"="place_of_worship"]["religion"="muslim"](around:50000,${latitude},${longitude});way["amenity"="place_of_worship"]["religion"="muslim"](around:50000,${latitude},${longitude}););out center;`;
-                
+                // Robust API call with Fallback
+                const query = `[out:json][timeout:25];(node["amenity"="place_of_worship"]["religion"="muslim"](around:50000,${latitude},${longitude});way["amenity"="place_of_worship"]["religion"="muslim"](around:50000,${latitude},${longitude}););out center;`;
+                const apiUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+
                 try {
-                    const [mapRes, prayerRes] = await Promise.all([
-                        fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`).then(r => r.json()),
+                    const [mapData, prayData] = await Promise.all([
+                        fetch(apiUrl).then(r => r.json()),
                         fetch(`https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=1`).then(r => r.json())
                     ]);
 
-                    const t = prayerRes.data.timings;
+                    const t = prayData.data.timings;
                     const grid = document.getElementById('grid');
                     grid.innerHTML = '';
 
-                    const sortedMasjids = mapRes.elements.map(e => {
-                        const mLat = e.lat || e.center.lat;
-                        const mLon = e.lon || e.center.lon;
-                        return {
-                            name: e.tags.name || e.tags["name:en"] || "Local Masjid",
-                            lat: mLat,
-                            lon: mLon,
-                            distance: getDistance(latitude, longitude, mLat, mLon),
-                            distVal: Math.sqrt(Math.pow(mLat - latitude, 2) + Math.pow(mLon - longitude, 2)) // Simple sort ref
-                        };
-                    }).sort((a, b) => a.distVal - b.distVal).slice(0, 30); // Top 30 closest
+                    const list = mapData.elements.map(e => {
+                        const lat = e.lat || e.center.lat;
+                        const lon = e.lon || e.center.lon;
+                        return { name: e.tags.name || "Local Masjid", lat, lon, d: getDist(latitude, longitude, lat, lon) };
+                    }).sort((a,b) => parseFloat(a.d) - parseFloat(b.d)).slice(0, 21);
 
-                    sortedMasjids.forEach(m => {
-                        const schedule = [
-                            { l: 'Fajr', t: t.Sunrise },
-                            { l: 'Zohr', t: "13:30" }, // Delhi Standard
-                            { l: 'Asr', t: t.Asr },
-                            { l: 'Maghrib', t: t.Maghrib },
-                            { l: 'Isha', t: t.Isha }
-                        ];
-
-                        let card = `
-                            <div class="glass rounded-[2.5rem] p-8 relative overflow-hidden flex flex-col justify-between">
-                                <div class="arabic">مسجد</div>
+                    list.forEach(m => {
+                        grid.innerHTML += `
+                            <div class="glass rounded-[2rem] p-8 flex flex-col justify-between emerald-glow">
                                 <div class="mb-6">
                                     <div class="flex justify-between items-start">
-                                        <h3 class="text-xl font-bold text-emerald-500 truncate w-2/3" title="${m.name}">${m.name}</h3>
-                                        <span class="text-[9px] font-black bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-lg uppercase tracking-widest">${m.distance}</span>
+                                        <h3 class="text-lg font-bold text-emerald-500 truncate w-3/4">${m.name}</h3>
+                                        <span class="text-[9px] font-black text-emerald-500 bg-emerald-500/5 px-2 py-1 rounded-md border border-emerald-500/10">${m.d}</span>
                                     </div>
-                                    <p class="text-[9px] text-gray-600 mt-1 uppercase tracking-widest">Delhi NCR Radius</p>
+                                    <p class="text-[8px] text-gray-600 uppercase tracking-widest mt-1">Delhi NCR Region</p>
                                 </div>
-                                <div class="space-y-3">`;
+                                <div class="space-y-3 mb-6">
+                                    ${['Fajr', 'Zohr', 'Asr', 'Maghrib', 'Isha'].map(s => `
+                                        <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                                            <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">${s}</span>
+                                            <span class="text-xs font-mono font-bold">${s === 'Zohr' ? '1:30 PM' : fmt(calcJ(s, s === 'Fajr' ? t.Sunrise : t[s]))}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <a href="https://www.google.com/maps/dir/?api=1&destination=${m.lat},${m.lon}" target="_blank" class="block text-center py-3 bg-emerald-500/5 border border-emerald-500/20 text-emerald-500 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition">Get Directions</a>
+                            </div>`;
+                    });
 
-                        schedule.forEach(s => {
-                            const jMin = calculateJamaat(s.l, s.t);
-                            card += `
-                                <div class="flex justify-between items-center border-b border-white/5 pb-2">
-                                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">${s.l}</span>
-                                    <span class="text-sm font-mono font-bold text-gray-200">${formatTime(jMin)}</span>
-                                </div>`;
-                        });
-
-                        card += `</div>
-                                <a href="https://www.google.com/maps/dir/?api=1&destination=${m.lat},${m.lon}" target="_blank" class="mt-8 block text-center py-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-500 hover:bg-emerald-500 hover:text-white transition shadow-sm">Get Directions</a>
+                } catch (e) {
+                    grid.innerHTML = `<div class="col-span-full text-center py-20 text-gray-500 italic">Error: API connection blocked. Deploy to Vercel (HTTPS) to fix this.</div>`;
+                }
+            }, () => {
+                document.getElementById('status-badge').innerText = "GPS DENIED";
+            });
+        }
+        init();
+    </script>
+</body>
+</html>
