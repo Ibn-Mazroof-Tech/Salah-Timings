@@ -3,16 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salah Connect | Debugged Pro</title>
+    <title>Salah Connect Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
         body { background: #050608; color: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; }
         .glass-card { background: #111216; border: 1px solid #22252b; border-radius: 24px; padding: 24px; transition: 0.3s; }
-        .glass-card:hover { border-color: #10b981; }
         .emerald-text { color: #10b981; }
-        .input-style { background: #1a1c23; border: 1px solid #2d3139; color: white; padding: 12px; border-radius: 12px; outline: none; }
-        .input-style:focus { border-color: #10b981; }
+        .input-style { background: #1a1c23; border: 1px solid #2d3139; color: white; padding: 12px; border-radius: 12px; width: 100%; outline: none; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -20,7 +18,7 @@
     <header class="p-6 border-b border-white/5 bg-black/80 sticky top-0 z-50 flex justify-between items-center">
         <div>
             <h1 class="text-xl font-black italic">SALAH<span class="emerald-text">CONNECT</span></h1>
-            <p id="radar-status" class="text-[9px] text-gray-500 uppercase tracking-widest mt-1">Radar: Offline</p>
+            <p id="radar-status" class="text-[9px] text-gray-500 uppercase tracking-widest mt-1">Radar: Initializing...</p>
         </div>
         <button onclick="document.getElementById('modal').classList.toggle('hidden')" class="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-900/20">
             + Setup Masjid
@@ -29,64 +27,65 @@
 
     <main class="p-6 max-w-6xl mx-auto">
         <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="col-span-full text-center py-20 text-gray-500 italic" id="loading-msg">
+                Please allow Location Access (GPS) to see timings...
             </div>
+        </div>
     </main>
 
     <div id="modal" class="fixed inset-0 bg-black/95 hidden z-[100] flex items-center justify-center p-4">
         <div class="bg-[#0f1115] max-w-md w-full p-8 rounded-[2.5rem] border border-white/5">
-            <h3 class="text-2xl font-bold mb-1 emerald-text">Eternal Setup</h3>
-            <p class="text-gray-500 text-[10px] uppercase mb-8 tracking-widest font-bold">Set Today's Jama'at to lock the pattern</p>
+            <h3 class="text-2xl font-bold mb-1 emerald-text italic">One-Time Setup</h3>
+            <p class="text-gray-500 text-[9px] uppercase mb-8 tracking-widest font-bold">Set Today's Jama'at to lock the pattern</p>
             
             <form id="setupForm" class="space-y-4">
-                <input type="text" id="masjidName" placeholder="Masjid Name" class="w-full input-style" required>
+                <input type="text" id="masjidName" placeholder="Masjid Name" class="input-style" required>
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="flex flex-col"><span class="text-[9px] text-gray-500 ml-2 mb-1">FAJR</span><input type="time" id="fajrIn" class="input-style" required></div>
+                    <div class="flex flex-col"><span class="text-[9px] text-gray-500 ml-2 mb-1">FAJR JAMA'AT</span><input type="time" id="fajrIn" class="input-style" required></div>
                     <div class="flex flex-col"><span class="text-[9px] text-emerald-500 ml-2 mb-1">ZOHR (FIX)</span><input type="time" id="zohrIn" class="input-style" required></div>
-                    <div class="flex flex-col"><span class="text-[9px] text-gray-500 ml-2 mb-1">ASR</span><input type="time" id="asrIn" class="input-style" required></div>
-                    <div class="flex flex-col"><span class="text-[9px] text-gray-500 ml-2 mb-1">ISHA</span><input type="time" id="ishaIn" class="input-style" required></div>
+                    <div class="flex flex-col"><span class="text-[9px] text-gray-500 ml-2 mb-1">ASR JAMA'AT</span><input type="time" id="asrIn" class="input-style" required></div>
+                    <div class="flex flex-col"><span class="text-[9px] text-gray-500 ml-2 mb-1">ISHA JAMA'AT</span><input type="time" id="ishaIn" class="input-style" required></div>
                 </div>
                 <div class="flex gap-3 pt-4">
                     <button type="button" onclick="document.getElementById('modal').classList.add('hidden')" class="flex-1 text-gray-500 text-[10px] font-bold uppercase tracking-widest">Cancel</button>
-                    <button type="submit" class="flex-1 bg-emerald-600 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest">Lock Logic</button>
+                    <button type="submit" class="flex-1 bg-emerald-600 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-white">Save & Lock</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        let pTimes = {};
+        let pTimes = null;
 
-        // --- YOUR JUMP LOGIC (4:15 -> 4:30, 4:16 -> 4:45) ---
-        function runEternal(label, userJ, athan) {
+        // Logic Engine: Pattern Jump (4:15 -> 4:30, 4:16 -> 4:45)
+        function runEternal(userJ, athan) {
+            if (!athan) return 0;
             let uMin = toMin(userJ);
             let aMin = toMin(athan);
             let diff = uMin - aMin;
 
-            // Pattern Detection
             let bracket = 15;
             if (diff >= 45) bracket = 45;
             else if (diff >= 30) bracket = 30;
 
             let rem = aMin % bracket;
-            if (rem === 0) {
-                return aMin + bracket; // e.g., 4:15 + 15 = 4:30
-            } else {
-                // The Jump: Next multiple + bracket
-                return (Math.ceil(aMin / bracket) * bracket) + bracket; // e.g., 4:16 -> 4:30 + 15 = 4:45
-            }
+            // Exact multiple check
+            if (rem === 0) return aMin + bracket;
+            // Jump logic: Next multiple + bracket
+            return (Math.ceil(aMin / bracket) * bracket) + bracket;
         }
 
-        // Fajr Specific Rule: Sunrise based
+        // Fajr Pattern Logic (Multiple of 5)
         function runFajr(sunrise) {
             let sMin = toMin(sunrise);
-            let n5 = Math.ceil(sMin / 5) * 5;
-            return (n5 === sMin + 1) ? (n5 - 5) - 25 : n5 - 25;
+            let next5 = Math.ceil(sMin / 5) * 5;
+            return (next5 === sMin + 1) ? (next5 - 5) - 25 : next5 - 25;
         }
 
-        function toMin(s) { let [h, m] = s.split(':').map(Number); return h * 60 + m; }
+        function toMin(s) { if(!s) return 0; let [h, m] = s.split(':').map(Number); return h * 60 + m; }
         function fmt(m) { let h = Math.floor(m / 60) % 24; return `${h % 12 || 12}:${(m % 60).toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; }
 
-        // Save & Load
+        // Form Handler
         document.getElementById('setupForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const data = {
@@ -104,33 +103,65 @@
         });
 
         async function init() {
+            if (!navigator.geolocation) {
+                document.getElementById('loading-msg').innerText = "Geolocation not supported by your browser.";
+                return;
+            }
+
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 document.getElementById('radar-status').innerText = "Radar: Active";
-                const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&method=1`).then(r => r.json());
-                pTimes = res.data.timings;
-                render();
+                try {
+                    const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&method=1`);
+                    const data = await res.json();
+                    pTimes = data.data.timings;
+                    render();
+                } catch (e) {
+                    document.getElementById('loading-msg').innerText = "Error fetching prayer data. Check internet.";
+                }
+            }, (err) => {
+                document.getElementById('loading-msg').innerText = "GPS Permission Denied. Please allow location and refresh.";
+                document.getElementById('radar-status').innerText = "Radar: GPS Denied";
             });
         }
 
         function render() {
             const grid = document.getElementById('grid');
             const data = JSON.parse(localStorage.getItem('masjids') || '[]');
-            grid.innerHTML = '';
             
-            data.forEach(m => {
+            if (data.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-20 text-gray-600 italic">No masjids added. Click "+ Setup Masjid" to begin.</div>`;
+                return;
+            }
+
+            grid.innerHTML = '';
+            data.forEach((m, index) => {
+                // Eternal logic application
+                const fajrJ = runFajr(pTimes.Sunrise);
+                const asrJ = runEternal(m.aj, pTimes.Asr);
+                const ishaJ = runEternal(m.ij, pTimes.Isha);
+
                 grid.innerHTML += `
-                    <div class="glass-card">
-                        <h3 class="text-xl font-extrabold emerald-text mb-6 truncate uppercase tracking-tight">${m.name}</h3>
+                    <div class="glass-card relative">
+                        <button onclick="deleteMasjid(${index})" class="absolute top-4 right-4 text-gray-700 hover:text-red-500">✕</button>
+                        <h3 class="text-xl font-extrabold emerald-text mb-6 uppercase tracking-tight italic">${m.name}</h3>
                         <div class="space-y-4">
-                            <div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-500 uppercase">Fajr</span><span class="font-bold text-white">${fmt(runFajr(pTimes.Sunrise))}</span></div>
-                            <div class="flex justify-between items-center"><span class="text-xs font-bold text-emerald-500/50 uppercase">Zohr (Fix)</span><span class="font-bold text-white">${fmt(toMin(m.zj))}</span></div>
-                            <div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-500 uppercase">Asr</span><span class="font-bold text-white">${fmt(runEternal('Asr', m.aj, pTimes.Asr))}</span></div>
-                            <div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-500 uppercase">Maghrib</span><span class="font-bold text-white">${fmt(toMin(pTimes.Maghrib)+7)}</span></div>
-                            <div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-500 uppercase">Isha</span><span class="font-bold text-white">${fmt(runEternal('Isha', m.ij, pTimes.Isha))}</span></div>
+                            <div class="flex justify-between items-center border-b border-white/5 pb-2"><span class="text-[10px] font-bold text-gray-500 uppercase">Fajr</span><span class="font-bold text-white">${fmt(fajrJ)}</span></div>
+                            <div class="flex justify-between items-center border-b border-white/5 pb-2"><span class="text-[10px] font-bold text-emerald-500/50 uppercase italic">Zohr (Fix)</span><span class="font-bold text-white">${fmt(toMin(m.zj))}</span></div>
+                            <div class="flex justify-between items-center border-b border-white/5 pb-2"><span class="text-[10px] font-bold text-gray-500 uppercase">Asr</span><span class="font-bold text-white">${fmt(asrJ)}</span></div>
+                            <div class="flex justify-between items-center border-b border-white/5 pb-2"><span class="text-[10px] font-bold text-gray-500 uppercase">Maghrib</span><span class="font-bold text-white">${fmt(toMin(pTimes.Maghrib)+7)}</span></div>
+                            <div class="flex justify-between items-center border-b border-white/5 pb-2"><span class="text-[10px] font-bold text-gray-500 uppercase">Isha</span><span class="font-bold text-white">${fmt(ishaJ)}</span></div>
                         </div>
                     </div>`;
             });
         }
+
+        function deleteMasjid(i) {
+            let saved = JSON.parse(localStorage.getItem('masjids') || '[]');
+            saved.splice(i, 1);
+            localStorage.setItem('masjids', JSON.stringify(saved));
+            render();
+        }
+
         init();
     </script>
 </body>
