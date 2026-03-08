@@ -1,136 +1,319 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salah Connect Pro | Hybrid Radar</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mosque Jama'at Times</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        body { background: #050608; color: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass-card { background: #111216; border: 1px solid #22252b; border-radius: 24px; padding: 24px; transition: 0.3s; position: relative; }
-        .glass-card:hover { border-color: #10b981; transform: translateY(-4px); }
-        .emerald-text { color: #10b981; }
-        .input-style { background: #1a1c23; border: 1px solid #2d3139; color: white; padding: 12px; border-radius: 12px; width: 100%; outline: none; }
+        :root {
+            --deep-night: #0b1d3a;
+            --midnight: #0f2a5f;
+            --moonlight: #e6f0ff;
+            --moon-glow: #c7d9ff;
+            --gold-glow: #ffd76a;
+            --card-bg: rgba(15, 35, 70, 0.65);
+            --card-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            color: var(--moonlight);
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 10%, #163a7a 0%, transparent 35%),
+                radial-gradient(circle at 80% 20%, #102a5c 0%, transparent 30%),
+                linear-gradient(140deg, var(--deep-night), var(--midnight));
+            overflow-x: hidden;
+        }
+
+        .night-overlay::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(2px 2px at 20% 35%, rgba(255, 255, 255, 0.28), transparent),
+                radial-gradient(1px 1px at 40% 10%, rgba(255, 255, 255, 0.22), transparent),
+                radial-gradient(1px 1px at 65% 30%, rgba(255, 255, 255, 0.2), transparent),
+                radial-gradient(2px 2px at 85% 60%, rgba(255, 255, 255, 0.24), transparent);
+            pointer-events: none;
+            animation: drift 18s linear infinite;
+            opacity: 0.45;
+            z-index: -1;
+        }
+
+        @keyframes drift {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(8px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(8px);
+            transition: transform .25s ease, border-color .25s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(230, 240, 255, 0.26);
+        }
+
+        .upcoming-time {
+            color: #181300;
+            background: linear-gradient(130deg, #ffe69a, var(--gold-glow));
+            box-shadow: 0 0 18px rgba(255, 215, 106, 0.45);
+        }
     </style>
 </head>
-<body class="min-h-screen">
 
-    <header class="p-6 border-b border-white/5 bg-black/80 sticky top-0 z-50 flex justify-between items-center">
-        <div>
-            <h1 class="text-xl font-black italic">SALAH<span class="emerald-text">CONNECT</span></h1>
-            <p id="radar-status" class="text-[9px] text-gray-500 uppercase tracking-widest mt-1 uppercase">Scanning Delhi NCR...</p>
-        </div>
-        <button onclick="document.getElementById('modal').classList.toggle('hidden')" class="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-emerald-900/20">
-            + Setup My Masjid
-        </button>
-    </header>
+<body class="night-overlay">
+    <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+        <header class="mb-7 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">🌙 Mosque Jama'at Times</h1>
+                <p class="text-sm text-[#c7d9ff]/80">Simple, clean, and manually manageable cards for multiple mosques.
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="openFormBtn"
+                    class="rounded-lg bg-[#c7d9ff] text-[#0b1d3a] font-semibold px-4 py-2 text-sm">+ Add Mosque</button>
+                <span id="todayTimesMeta" class="text-xs text-[#e6f0ff]/75"></span>
+            </div>
+        </header>
+        <section id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></section>
 
-    <main class="p-6 max-w-6xl mx-auto">
-        <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="col-span-full text-center py-20 text-gray-600 italic">Finding Delhi Masjids...</div>
-        </div>
-    </main>
-
-    <div id="modal" class="fixed inset-0 bg-black/95 hidden z-[100] flex items-center justify-center p-4">
-        <div class="bg-[#0f1115] max-w-md w-full p-8 rounded-[2.5rem] border border-white/5">
-            <h3 class="text-2xl font-bold mb-1 emerald-text italic">Manual Setup</h3>
-            <p class="text-gray-500 text-[9px] uppercase mb-8 tracking-widest font-bold">Lock your custom pattern</p>
-            <form id="setupForm" class="space-y-4">
-                <input type="text" id="masjidName" placeholder="Masjid Name" class="input-style" required>
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="time" id="fj" class="input-style" required>
-                    <input type="time" id="zj" class="input-style" value="13:30" required>
-                    <input type="time" id="aj" class="input-style" required>
-                    <input type="time" id="ij" class="input-style" required>
-                </div>
-                <button type="submit" class="w-full bg-emerald-600 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-white mt-4">Add to List</button>
-            </form>
+        <div class="mt-7 flex items-center justify-center gap-3">
+            <button id="prevBtn"
+                class="px-4 py-2 rounded-lg border border-white/20 text-sm disabled:opacity-40">Previous</button>
+            <span id="pageInfo" class="text-sm"></span>
+            <button id="nextBtn"
+                class="px-4 py-2 rounded-lg border border-white/20 text-sm disabled:opacity-40">Next</button>
         </div>
     </div>
 
+    <div id="formModal" class="fixed inset-0 hidden bg-black/70 p-4 z-20">
+        <div class="max-w-xl mx-auto mt-8 glass-card rounded-2xl p-5">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <h2 class="text-xl font-semibold">Add Mosque Card</h2>
+                <button id="closeFormBtn" class="text-sm border border-white/25 rounded-md px-2 py-1">Close</button>
+            </div>
+            <p class="text-xs text-[#c7d9ff]/85 mb-4">Defaults follow your logic. You can override per mosque when
+                needed.</p>
+
+            <form id="mosqueForm" class="space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input required id="name" type="text" placeholder="Mosque Name"
+                        class="w-full rounded-lg bg-[#10274f]/70 border border-white/10 px-3 py-2 text-sm" />
+                    <input required id="location" type="text" placeholder="Location"
+                        class="w-full rounded-lg bg-[#10274f]/70 border border-white/10 px-3 py-2 text-sm" />
+                </div>
+                <input id="image" type="url" placeholder="Image URL (optional)"
+                    class="w-full rounded-lg bg-[#10274f]/70 border border-white/10 px-3 py-2 text-sm" />
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <input id="zuhrJamaat" type="time" value="13:30"
+                        class="rounded-lg bg-[#10274f]/70 border border-white/10 px-3 py-2 text-sm" />
+                    <input id="fajrOnFive" type="number" value="25" min="0" max="60"
+                        class="rounded-lg bg-[#10274f]/70 border border-white/10 px-3 py-2 text-sm"
+                        title="Fajr offset when sunrise minute is exactly on 5" />
+                    <input id="fajrOffFive" type="number" value="30" min="0" max="60"
+                        class="rounded-lg bg-[#10274f]/70 border border-white/10 px-3 py-2 text-sm"
+                        title="Fajr offset otherwise" />
+                    <input id="asrGap" type="number" value="30" min="0" max="90"
+                        class="rounded-lg bg-[#10274f]/70 border border-white/10 px-3 py-2 text-sm"
+                        title="Asr jamaat = floor(start/15m) + this gap" />
+                    <input id="ishaGap" type="number" value="45" min="0" max="120"
+                        class="rounded-lg bg-[#10274f]/70 border border-white/10 px-3 py-2 text-sm"
+                        title="Isha jamaat = floor(start/15m) + this gap" />
+                    <input id="maghribGap" type="number" value="7" min="0" max="30"
+                        class="rounded-lg bg-[#10274f]/70 border border-white/10 px-3 py-2 text-sm"
+                        title="Maghrib gap after sunset" />
+                </div>
+
+                <button class="w-full rounded-lg bg-[#e6f0ff] text-[#0b1d3a] font-semibold py-2">Save Mosque</button>
+            </form>
+        </div>
+    </div>
     <script>
-        let pTimes = null;
-
-        // --- THE JUMP LOGIC (Your Formula) ---
-        function runEternal(userJ, athan) {
-            let uMin = toMin(userJ);
-            let aMin = toMin(athan);
-            let diff = uMin - aMin;
-
-            let bracket = 15;
-            if (diff >= 45) bracket = 45;
-            else if (diff >= 30) bracket = 30;
-
-            let rem = aMin % bracket;
-            return (rem === 0) ? aMin + bracket : (Math.ceil(aMin / bracket) * bracket) + bracket;
+        const PAGE_SIZE = 6;
+        let page = 1;
+        const fallbackDailyStarts = {
+            Sunrise: "06:40",
+            Asr: "16:30",
+            Maghrib: "18:15",
+            Isha: "19:30"
+        };
+        const defaultMosques = [
+            { name: "Masjid Al Noor", location: "Jamia Nagar, New Delhi", image: "https://images.unsplash.com/photo-1466442929976-97f336a657be?auto=format&fit=crop&w=1200&q=80", zuhrJamaat: "13:30", fajrOnFive: 25, fajrOffFive: 30, asrGap: 30, ishaGap: 45, maghribGap: 7 },
+            { name: "Markazi Masjid", location: "Okhla, New Delhi", image: "https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1200&q=80", zuhrJamaat: "13:30", fajrOnFive: 25, fajrOffFive: 30, asrGap: 30, ishaGap: 45, maghribGap: 7 },
+            { name: "Baitul Huda Masjid", location: "Batla House, New Delhi", image: "https://upload.wikimedia.org/wikipedia/commons/7/77/Jama_Masjid%2C_Delhi.jpg", zuhrJamaat: "13:15", fajrOnFive: 25, fajrOffFive: 30, asrGap: 30, ishaGap: 45, maghribGap: 7 }
+        ];
+        let dailyStarts = { ...fallbackDailyStarts };
+        function toMinutes(t) {
+            const [h, m] = t.split(":").map(Number);
+            return h * 60 + m;
+        }
+        function to12Hour(totalMinutes) {
+            const mins = ((totalMinutes % 1440) + 1440) % 1440;
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            const suffix = h >= 12 ? "PM" : "AM";
+            const h12 = h % 12 || 12;
+            return `${h12}:${String(m).padStart(2, "0")} ${suffix}`;
+        }
+        function quarterBucketJamaat(startTime, gapMinutes) {
+            const start = toMinutes(startTime);
+            const bucket = Math.floor(start / 15) * 15;
+            return bucket + gapMinutes;
+        }
+        function fajrJamaatFromSunrise(sunrise, onFiveOffset, offFiveOffset) {
+            const sunriseMins = toMinutes(sunrise);
+            const minute = sunriseMins % 60;
+            const roundedUp5 = Math.ceil(sunriseMins / 5) * 5;
+            const offset = minute % 5 === 0 ? onFiveOffset : offFiveOffset;
+            return roundedUp5 - offset;
+        }
+        function getTimingsForMosque(m) {
+            return {
+                Fajr: fajrJamaatFromSunrise(dailyStarts.Sunrise, Number(m.fajrOnFive), Number(m.fajrOffFive)),
+                Zuhr: toMinutes(m.zuhrJamaat),
+                Asr: quarterBucketJamaat(dailyStarts.Asr, Number(m.asrGap)),
+                Maghrib: toMinutes(dailyStarts.Maghrib) + Number(m.maghribGap),
+                Isha: quarterBucketJamaat(dailyStarts.Isha, Number(m.ishaGap))
+            };
         }
 
-        function runFajr(sunrise) {
-            let sMin = toMin(sunrise);
-            let n5 = Math.ceil(sMin / 5) * 5;
-            return (n5 === sMin + 1) ? (n5 - 5) - 25 : n5 - 25;
+        function upcomingSalahLabel(timings) {
+            const now = new Date();
+            const current = now.getHours() * 60 + now.getMinutes();
+            const order = ["Fajr", "Zuhr", "Asr", "Maghrib", "Isha"];
+            for (const salah of order) {
+                if (timings[salah] >= current) return salah;
+            }
+            return "Fajr";
         }
 
-        function toMin(s) { if(!s) return 0; let [h, m] = s.split(':').map(Number); return h * 60 + m; }
-        function fmt(m) { let h = Math.floor(m / 60) % 24; return `${h % 12 || 12}:${(m % 60).toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; }
+        function getMosques() {
+            const saved = JSON.parse(localStorage.getItem("mosques") || "[]");
+            return [...defaultMosques, ...saved];
+        }
 
-        // --- DATA FETCHING (Delhi Radar) ---
-        async function fetchDelhi(lat, lon) {
-            const query = `[out:json][timeout:30];(node["amenity"="place_of_worship"]["religion"="muslim"](around:50000,${lat},${lon});way["amenity"="place_of_worship"]["religion"="muslim"](around:50000,${lat},${lon}););out center;`;
+        function renderCards() {
+            const mosques = getMosques();
+            const totalPages = Math.max(1, Math.ceil(mosques.length / PAGE_SIZE));
+            page = Math.min(page, totalPages);
+
+            const start = (page - 1) * PAGE_SIZE;
+            const list = mosques.slice(start, start + PAGE_SIZE);
+            const container = document.getElementById("cardsContainer");
+            container.innerHTML = "";
+
+            list.forEach((m) => {
+                const timings = getTimingsForMosque(m);
+                const nextSalah = upcomingSalahLabel(timings);
+
+                const card = document.createElement("article");
+                card.className = "glass-card rounded-2xl overflow-hidden";
+
+                card.innerHTML = `
+          <img src="${m.image || "https://images.unsplash.com/photo-1570203600097-5cf4ad4f66f9?auto=format&fit=crop&w=1200&q=80"}" alt="${m.name}" class="h-40 w-full object-cover" />
+          <div class="p-4">
+            <h3 class="text-lg font-semibold">${m.name}</h3>
+            <p class="text-sm text-[#c7d9ff]/80 mb-3">${m.location}</p>
+            <ul class="space-y-2 text-sm">
+              ${Object.entries(timings).map(([name, value]) => `
+                <li class="flex items-center justify-between px-2 py-1 rounded-md ${name === nextSalah ? "upcoming-time" : "bg-white/[0.03]"}">
+                  <span>${name}</span>
+                  <span class="font-semibold">${to12Hour(value)}</span>
+                </li>`).join("")}
+            </ul>
+          </div>`;
+
+                container.appendChild(card);
+            });
+
+            document.getElementById("pageInfo").textContent = `Page ${page} of ${totalPages}`;
+            document.getElementById("prevBtn").disabled = page === 1;
+            document.getElementById("nextBtn").disabled = page >= totalPages;
+        }
+
+        async function loadTodayStarts() {
             try {
-                const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+                const res = await fetch("https://api.aladhan.com/v1/timingsByCity?city=New%20Delhi&country=India&method=1&school=1");
                 const data = await res.json();
-                return data.elements.map(e => ({ name: e.tags.name || "Local Masjid", zj: "13:30", aj: "16:45", ij: "20:00" }));
-            } catch (e) { return []; }
+                const t = data?.data?.timings;
+                if (t?.Sunrise && t?.Asr && t?.Maghrib && t?.Isha) {
+                    dailyStarts = { Sunrise: t.Sunrise.slice(0, 5), Asr: t.Asr.slice(0, 5), Maghrib: t.Maghrib.slice(0, 5), Isha: t.Isha.slice(0, 5) };
+                }
+            } catch (_) {
+                // fallback already available
+            }
+
+            document.getElementById("todayTimesMeta").textContent = `Sunrise ${dailyStarts.Sunrise} · Asr start ${dailyStarts.Asr} · Maghrib ${dailyStarts.Maghrib} · Isha start ${dailyStarts.Isha}`;
         }
 
-        async function init() {
-            navigator.geolocation.getCurrentPosition(async (pos) => {
-                const { latitude, longitude } = pos.coords;
-                document.getElementById('radar-status').innerText = "Radar: Delhi Active";
-
-                const [pRes, autoMasjids] = await Promise.all([
-                    fetch(`https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=1`).then(r => r.json()),
-                    fetchDelhi(latitude, longitude)
-                ]);
-
-                pTimes = pRes.data.timings;
-                render(autoMasjids);
-            });
-        }
-
-        function render(autoMasjids = []) {
-            const grid = document.getElementById('grid');
-            const manual = JSON.parse(localStorage.getItem('masjids') || '[]');
-            const all = [...manual, ...autoMasjids.slice(0, 20)]; // Showing manual + top 20 Delhi masjids
-            
-            grid.innerHTML = '';
-            all.forEach(m => {
-                grid.innerHTML += `
-                    <div class="glass-card">
-                        <h3 class="text-xl font-extrabold emerald-text mb-6 uppercase italic">${m.name}</h3>
-                        <div class="space-y-4">
-                            <div class="flex justify-between border-b border-white/5 pb-2"><span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Fajr</span><span class="font-bold">${fmt(runFajr(pTimes.Sunrise))}</span></div>
-                            <div class="flex justify-between border-b border-white/5 pb-2"><span class="text-[9px] text-emerald-500/50 font-bold uppercase tracking-widest italic">Zohr (Fix)</span><span class="font-bold">${m.zj}</span></div>
-                            <div class="flex justify-between border-b border-white/5 pb-2"><span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Asr</span><span class="font-bold">${fmt(runEternal(m.aj, pTimes.Asr))}</span></div>
-                            <div class="flex justify-between border-b border-white/5 pb-2"><span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Maghrib</span><span class="font-bold">${fmt(toMin(pTimes.Maghrib)+7)}</span></div>
-                            <div class="flex justify-between border-b border-white/5 pb-2"><span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Isha</span><span class="font-bold">${fmt(runEternal(m.ij, pTimes.Isha))}</span></div>
-                        </div>
-                    </div>`;
-            });
-        }
-
-        document.getElementById('setupForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const data = { name: document.getElementById('masjidName').value, zj: document.getElementById('zj').value, aj: document.getElementById('aj').value, ij: document.getElementById('ij').value };
-            let saved = JSON.parse(localStorage.getItem('masjids') || '[]');
-            saved.push(data);
-            localStorage.setItem('masjids', JSON.stringify(saved));
-            location.reload();
+        document.getElementById("openFormBtn").addEventListener("click", () => {
+            document.getElementById("formModal").classList.remove("hidden");
         });
 
-        init();
+        document.getElementById("closeFormBtn").addEventListener("click", () => {
+            document.getElementById("formModal").classList.add("hidden");
+        });
+
+        document.getElementById("mosqueForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const mosque = {
+                name: document.getElementById("name").value.trim(),
+                location: document.getElementById("location").value.trim(),
+                image: document.getElementById("image").value.trim(),
+                zuhrJamaat: document.getElementById("zuhrJamaat").value || "13:30",
+                fajrOnFive: Number(document.getElementById("fajrOnFive").value || 25),
+                fajrOffFive: Number(document.getElementById("fajrOffFive").value || 30),
+                asrGap: Number(document.getElementById("asrGap").value || 30),
+                ishaGap: Number(document.getElementById("ishaGap").value || 45),
+                maghribGap: Number(document.getElementById("maghribGap").value || 7)
+            };
+
+            const saved = JSON.parse(localStorage.getItem("mosques") || "[]");
+            saved.push(mosque);
+            localStorage.setItem("mosques", JSON.stringify(saved));
+
+            e.target.reset();
+            document.getElementById("zuhrJamaat").value = "13:30";
+            document.getElementById("fajrOnFive").value = "25";
+            document.getElementById("fajrOffFive").value = "30";
+            document.getElementById("asrGap").value = "30";
+            document.getElementById("ishaGap").value = "45";
+            document.getElementById("maghribGap").value = "7";
+
+            page = Math.ceil(getMosques().length / PAGE_SIZE);
+            renderCards();
+            document.getElementById("formModal").classList.add("hidden");
+        });
+
+        document.getElementById("prevBtn").addEventListener("click", () => {
+            if (page > 1) page -= 1;
+            renderCards();
+        });
+
+        document.getElementById("nextBtn").addEventListener("click", () => {
+            page += 1;
+            renderCards();
+        });
+        (async function init() {
+            await loadTodayStarts();
+            renderCards();
+        })();
     </script>
 </body>
+
 </html>
